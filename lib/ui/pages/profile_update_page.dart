@@ -1,7 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import '../../services/network_caller.dart';
 import '../../utils/assets_paths.dart';
+import '../../utils/urls.dart';
 import 'home_page.dart';
 
 class Profile_Update_Page extends StatefulWidget {
@@ -17,9 +20,7 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
    final TextEditingController _nameTEcontroller = TextEditingController();
    final TextEditingController _phoneTEcontroller = TextEditingController();
    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-   bool signInProgress = false;
-
+   bool profileUpInProgress = false;
    String selectedTimezone = "UTC";
 
   @override
@@ -243,6 +244,38 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
       ),
     );
   }
+
+
+   Future<bool> _signUp() async {
+
+     print("=/=//=/=/=/=/=future function called for SignUp/=/=/=/=/=/==/=/=/=/=/=/=/=/");
+     setState(() => profileUpInProgress = true);
+
+     Map<String, dynamic> requestBody = {
+       "full_name": _nameTEcontroller.text.trim(),
+       "email": _emailTEcontroller.text.trim(),
+       "password": "",
+       "mobile_no": _phoneTEcontroller.text.trim(),
+       "photo_url": "https://example.com/photo.jpg",
+       "time_zone": "Asia/Dhaka",
+       "notification": 0
+     };
+
+     NetworkResponse response =
+     await NetworkCaller.postRequest(url: Urls.signUp_URL, body: requestBody);
+
+     setState(() => profileUpInProgress = false);
+
+     if (response.isSuccess) {
+       Get.snackbar("Success", "Sign-up completed", backgroundColor: Colors.green);
+       return true;
+     } else {
+       Get.snackbar("Error", response.errorMessage ?? "Please try again",
+           backgroundColor: Colors.red);
+       return false;
+     }
+   }
+
   @override
   void dispose() {
     _nameTEcontroller.dispose();
