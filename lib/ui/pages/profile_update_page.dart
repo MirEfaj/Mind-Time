@@ -1,11 +1,16 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:mind_time/ui/widgets/center_circular_progress_indicator.dart';
 import '../../services/network_caller.dart';
 import '../../utils/assets_paths.dart';
 import '../../utils/urls.dart';
 import 'home_page.dart';
+import 'package:image_picker/image_picker.dart';
+
 
 class Profile_Update_Page extends StatefulWidget {
    Profile_Update_Page({super.key});
@@ -22,8 +27,62 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
    bool profileUpInProgress = false;
    String selectedTimezone = "UTC";
+   File? _pickedImageFile;
+   String? _base64Image;
+   final ImagePicker pickImage = ImagePicker();
 
-  @override
+
+
+   // 📌 pick image
+   Future<void> _pickImage() async {
+     showDialog(
+       context: context,
+       builder: (ctx) {
+         return AlertDialog(
+           title: const Text("Choose Image"),
+           content: Column(
+             mainAxisSize: MainAxisSize.min,
+             children: [
+               ListTile(
+                 leading: const Icon(Icons.camera_alt),
+                 title: const Text("Camera"),
+                 onTap: () async {
+                   Navigator.pop(ctx);
+                   final picked = await pickImage.pickImage(source: ImageSource.camera, imageQuality: 80);
+                   if (picked != null) {
+                     _setImage(File(picked.path));
+                   }
+                 },
+               ),
+               ListTile(
+                 leading: const Icon(Icons.photo),
+                 title: const Text("Gallery"),
+                 onTap: () async {
+                   Navigator.pop(ctx);
+                   final picked = await pickImage.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                   if (picked != null) {
+                     _setImage(File(picked.path));
+                   }
+                 },
+               ),
+             ],
+           ),
+         );
+       },
+     );
+   }
+
+   // 📌 convert to base64 + set state
+   void _setImage(File file) async {
+     final bytes = await file.readAsBytes();
+     setState(() {
+       _pickedImageFile = file;
+       _base64Image = base64Encode(bytes);
+     });
+   }
+
+
+   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
@@ -79,7 +138,7 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
                             child: Icon(Icons.camera_alt_outlined, color: Colors.white,size: 25.w,),
                           ),
                           SizedBox(height: 5.h),
-                           ElevatedButton.icon(onPressed: (){},icon: Icon(Icons.upload_outlined), label: Text("Upload Photo")),
+                           ElevatedButton.icon(onPressed: _pickImage ,icon: Icon(Icons.upload_outlined), label: Text("Upload Photo")),
 
 
                           SizedBox(height: 20.h),
@@ -99,43 +158,36 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
                           ),
                           SizedBox(height: 10.h),
                           TextFormField(
+                            enabled: false,
                             controller: _emailTEcontroller,
                             style: TextStyle(color: Colors.white),
                             textInputAction: TextInputAction.next,
-                            keyboardType: TextInputType.emailAddress,
                             decoration: InputDecoration(
                               hintText: "Enter Your Email",
                             ),
                             autovalidateMode: AutovalidateMode.onUserInteraction,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) return "Email is required";
-                              if (!RegExp(r"^[^@]+@[^@]+\.[^@]+").hasMatch(value)) return "Enter a valid email";
-                              return null;
-                            },
+
                           ),
 
                           SizedBox(height: 10.h),
                           TextFormField(
-                              controller: _phoneTEcontroller,
-                              obscureText: true,
-                              style: TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                hintText: "Enter your phone number",
-                                hintStyle: TextStyle(color: Colors.white54),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Password cannot be empty';
-                                } else if (value.length < 6) {
-                                  return 'Password must be at least 6 characters';
-                                } else if (!RegExp(r'[A-Z]').hasMatch(value)) {
-                                  return 'Password must contain at least one uppercase letter';
-                                } else if (!RegExp(r'[0-9]').hasMatch(value)) {
-                                  return 'Password must contain at least one number';
-                                }
-                                return null; // ✅ valid password
-                              },
+                            controller: _phoneTEcontroller,
+                            keyboardType: TextInputType.phone,
+                            style: TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: "Enter your phone number",
+                              hintStyle: TextStyle(color: Colors.white54),
                             ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Phone number cannot be empty';
+                              } else if (!RegExp(r'^[0-9]{8,15}$').hasMatch(value)) {
+                                return 'Enter a valid phone number';
+                              }
+                              return null;
+                            },
+                          ),
+
                           SizedBox(height: 10.h),
 
                           DropdownButtonFormField<String>(
@@ -204,30 +256,37 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
                                   ),
                                 ),
                             SizedBox(width: 25.w),
-                            ElevatedButton(
-                                  onPressed: () {
-                                    if (_formKey.currentState!.validate()) {
+                            Visibility(
+                              visible: profileUpInProgress == false,
+                              replacement: CenterCircularProgressIndicator(),
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  if (_formKey.currentState!.validate()) {
+                                    bool result = await _profileUpdate();
+                                    if (result) {
                                       Navigator.pushNamed(context, HomePage.name);
                                     }
-                                    Navigator.pushNamed(context, HomePage.name);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: Size(120.w, 40),
-                                    backgroundColor: Color(0xFF145dfc),
-                                    padding: EdgeInsets.symmetric(vertical: 14.h),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10.r),
-                                    ),
-                                  ),
-                                  child: Text("Complete Profile",
-                                    style: TextStyle(
-                                      fontSize: 15.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-
-                                    ),
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  minimumSize: Size(120.w, 40),
+                                  backgroundColor: Color(0xFF145dfc),
+                                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10.r),
                                   ),
                                 ),
+                                child: Text(
+                                  "Complete Profile",
+                                  style: TextStyle(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+
                           ],
                         ),
                           SizedBox(height: 15.h),
@@ -246,9 +305,9 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
   }
 
 
-   Future<bool> _signUp() async {
+   Future<bool> _profileUpdate() async {
 
-     print("=/=//=/=/=/=/=future function called for SignUp/=/=/=/=/=/==/=/=/=/=/=/=/=/");
+     print("=/=//=/=/=/=/=future function called for Profile - Up/=/=/=/=/=/==/=/=/=/=/=/=/=/");
      setState(() => profileUpInProgress = true);
 
      Map<String, dynamic> requestBody = {
@@ -256,8 +315,8 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
        "email": _emailTEcontroller.text.trim(),
        "password": "",
        "mobile_no": _phoneTEcontroller.text.trim(),
-       "photo_url": "https://example.com/photo.jpg",
-       "time_zone": "Asia/Dhaka",
+       "photo_url": _base64Image ?? "",
+       "time_zone": selectedTimezone,
        "notification": 0
      };
 

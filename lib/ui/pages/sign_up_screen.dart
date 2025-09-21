@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mind_time/models/user_model.dart';
 import '../../services/network_caller.dart';
 import '../../utils/assets_paths.dart';
 import '../../utils/urls.dart';
@@ -294,6 +295,9 @@ class _SignUpPageState extends State<SignUpPage> {
 
     NetworkResponse response =
     await NetworkCaller.postRequest(url: Urls.signUp_URL, body: requestBody);
+
+    UserModel userModel = UserModel.fromJson(response.body!['data']['user']);
+    String token = response.body!['data']['token'];
 
     setState(() => signUpInProgress = false);
 

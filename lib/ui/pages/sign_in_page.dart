@@ -16,7 +16,7 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPageState extends State<SignInPage> {
-   final TextEditingController _emailTEcontroller = TextEditingController();
+   final TextEditingController emailTEcontroller = TextEditingController();
    final TextEditingController _passwordTEcontroller = TextEditingController();
    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
    bool signInProgress = false;
@@ -150,7 +150,7 @@ class _SignInPageState extends State<SignInPage> {
 
                           SizedBox(height: 20.h),
                           TextFormField(
-                            controller: _emailTEcontroller,
+                            controller: emailTEcontroller,
                             style: TextStyle(color: Colors.white),
                             textInputAction: TextInputAction.next,
                             keyboardType: TextInputType.emailAddress,
@@ -257,7 +257,7 @@ class _SignInPageState extends State<SignInPage> {
   }
    @override
    void dispose() {
-     _emailTEcontroller.dispose();
+     emailTEcontroller.dispose();
      _passwordTEcontroller.dispose();
      super.dispose();
    }
