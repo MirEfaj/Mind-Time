@@ -228,7 +228,9 @@ class _SignUpPageState extends State<SignUpPage> {
                                  print("======================Elevated buttun validate from called");
                                  bool success = await _signUp();
                                  if (success) {
-                                   Navigator.pushNamed(context, Profile_Update_Page.name);
+                                   Navigator.push(context, MaterialPageRoute(builder: (context)=> Profile_Update_Page(
+                                     email: _emailTEcontroller.text.trim(),
+                                     password: _passwordTEcontroller.text)));
                                  }
                                }
                              },
@@ -295,9 +297,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
     NetworkResponse response =
     await NetworkCaller.postRequest(url: Urls.signUp_URL, body: requestBody);
-
-    UserModel userModel = UserModel.fromJson(response.body!['data']['user']);
-    String token = response.body!['data']['token'];
 
     setState(() => signUpInProgress = false);
 

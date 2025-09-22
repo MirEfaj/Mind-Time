@@ -9,6 +9,7 @@ import 'ui/pages/home_page.dart';
 import 'ui/pages/profile_update_page.dart';
 import 'ui/pages/sign_in_page.dart';
 import 'ui/pages/sign_up_screen.dart';
+import 'ui/pages/splash_screen.dart';
 import 'ui/pages/task_completion_save_congratulation_screen.dart';
 import 'ui/widgets/gradient_bg.dart';
 
@@ -86,16 +87,17 @@ class _MyAppState extends State<MyApp> {
           ),
 
 
-          home: GradientScaffold(child: SignInPage()),
-          initialRoute: SignInPage.name,
+          home: GradientScaffold(child: SplashScreen()),
+          initialRoute: SplashScreen.name,
           routes: {
+            SplashScreen.name: (context) => GradientScaffold(child: SplashScreen()),
             SignInPage.name: (context) => GradientScaffold(child: SignInPage()),
             SignUpPage.name: (context) => GradientScaffold(child: SignUpPage()),
             ForgotPassPage.name: (context) => const GradientScaffold(child: ForgotPassPage()),
             HomePage.name: (context) => const GradientScaffold(child: HomePage()),
             Day2_Page.name: (context) => const GradientScaffold(child: Day2_Page()),
             HabitTrackingForm.name: (context) => const GradientScaffold(child: HabitTrackingForm()),
-            Profile_Update_Page.name: (context) => GradientScaffold(child: Profile_Update_Page()),
+          //  Profile_Update_Page.name: (context) => GradientScaffold(child: Profile_Update_Page()),
             TaskCompletionSaveCongratulationScreen.name: (context) => GradientScaffold(child: TaskCompletionSaveCongratulationScreen()),
             ContactScreen.name: (context) => GradientScaffold(child: ContactScreen()),
           },

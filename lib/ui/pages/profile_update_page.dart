@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mind_time/ui/widgets/center_circular_progress_indicator.dart';
+import '../../models/user_model.dart';
 import '../../services/network_caller.dart';
 import '../../utils/assets_paths.dart';
 import '../../utils/urls.dart';
@@ -13,16 +14,19 @@ import 'package:image_picker/image_picker.dart';
 
 
 class Profile_Update_Page extends StatefulWidget {
-   Profile_Update_Page({super.key});
+   Profile_Update_Page({super.key, required this.email, required this.password});
   static const String name = '/Profile_Update_Page';
+   final  String email;
+   final  String password;
 
   @override
   State<Profile_Update_Page> createState() => _Profile_Update_PageState();
 }
 
 class _Profile_Update_PageState extends State<Profile_Update_Page> {
-   final TextEditingController _emailTEcontroller = TextEditingController();
-   final TextEditingController _nameTEcontroller = TextEditingController();
+  late final TextEditingController _emailTEcontroller;
+  late final TextEditingController _passwordTEcontroller;
+  final TextEditingController _nameTEcontroller = TextEditingController();
    final TextEditingController _phoneTEcontroller = TextEditingController();
    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
    bool profileUpInProgress = false;
@@ -30,6 +34,13 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
    File? _pickedImageFile;
    String? _base64Image;
    final ImagePicker pickImage = ImagePicker();
+
+   @override
+   void initState() {
+     super.initState();
+     _emailTEcontroller = TextEditingController(text: widget.email);
+     _passwordTEcontroller = TextEditingController(text: widget.password);
+   }
 
 
 
@@ -158,15 +169,13 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
                           ),
                           SizedBox(height: 10.h),
                           TextFormField(
-                            enabled: false,
                             controller: _emailTEcontroller,
-                            style: TextStyle(color: Colors.white),
-                            textInputAction: TextInputAction.next,
+                            enabled: false,  // 🔴 This disables the field
+                            style: TextStyle(color: Colors.white70), // make it look disabled
                             decoration: InputDecoration(
-                              hintText: "Enter Your Email",
+                              labelText: "Email",
+                              border: OutlineInputBorder(),
                             ),
-                            autovalidateMode: AutovalidateMode.onUserInteraction,
-
                           ),
 
                           SizedBox(height: 10.h),
@@ -305,35 +314,41 @@ class _Profile_Update_PageState extends State<Profile_Update_Page> {
   }
 
 
-   Future<bool> _profileUpdate() async {
+  Future<bool> _profileUpdate() async {
+    setState(() => profileUpInProgress = true);
 
-     print("=/=//=/=/=/=/=future function called for Profile - Up/=/=/=/=/=/==/=/=/=/=/=/=/=/");
-     setState(() => profileUpInProgress = true);
+    final requestBody = {
+      "full_name": _nameTEcontroller.text.trim(),
+      "email": _emailTEcontroller.text.trim(),
+      "password": widget.password, // or _passwordTEcontroller.text if editable
+      "mobile_no": _phoneTEcontroller.text.trim(),
+      "photo_url": _base64Image ?? "",
+      "time_zone": selectedTimezone,
+      "notification": 0,
+    };
 
-     Map<String, dynamic> requestBody = {
-       "full_name": _nameTEcontroller.text.trim(),
-       "email": _emailTEcontroller.text.trim(),
-       "password": "",
-       "mobile_no": _phoneTEcontroller.text.trim(),
-       "photo_url": _base64Image ?? "",
-       "time_zone": selectedTimezone,
-       "notification": 0
-     };
+    final response = await NetworkCaller.postRequest(
+      url: Urls.signUp_URL,
+      body: requestBody,
+    );
 
-     NetworkResponse response =
-     await NetworkCaller.postRequest(url: Urls.signUp_URL, body: requestBody);
+    setState(() => profileUpInProgress = false);
 
-     setState(() => profileUpInProgress = false);
+    if (response.isSuccess) {
+      final userModel = UserModel.fromJson(response.body!['data']['user']);
+      final token = response.body!['data']['token'];
 
-     if (response.isSuccess) {
-       Get.snackbar("Success", "Sign-up completed", backgroundColor: Colors.green);
-       return true;
-     } else {
-       Get.snackbar("Error", response.errorMessage ?? "Please try again",
-           backgroundColor: Colors.red);
-       return false;
-     }
-   }
+      Get.snackbar("Success", "Sign-up completed",
+          backgroundColor: Colors.green);
+
+      return true;
+    } else {
+      Get.snackbar("Error", response.errorMessage ?? "Please try again",
+          backgroundColor: Colors.red);
+      return false;
+    }
+  }
+
 
   @override
   void dispose() {
